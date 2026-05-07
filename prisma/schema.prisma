@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum UserRole {
+  STUDENT
+  CLUB_EXECUTIVE
+  FACULTY_COORDINATOR
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum OpportunityType {
+  HACKATHON
+  PROJECT
+  RESEARCH
+  SPORTS
+  CLUB_RECRUITMENT
+  OTHER
+}
+
+model College {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users User[]
+  clubs Club[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  bio          String?
+  branch       String?
+  year         Int?
+
+  role UserRole @default(STUDENT)
+
+  createdAt DateTime @default(now())
+
+  collegeId String?
+  college   College? @relation(fields: [collegeId], references: [id])
+  createdOpportunities Opportunity[]
+userSkills  UserSkill[]
+userDomains UserDomain[]
+applications Application[]
+teamMembers TeamMember[]
+messages TeamMessage[]
+}
+
+model Club {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  collegeId String?
+  college   College? @relation(fields: [collegeId], references: [id])
+
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        OpportunityType
+
+  deadline DateTime?
+
+  createdAt DateTime @default(now())
+
+  creatorId String
+  creator   User @relation(fields: [creatorId], references: [id])
+
+  clubId String?
+  club   Club? @relation(fields: [clubId], references: [id])
+
+roles OpportunityRole[]
+applications Application[]
+team Team?
+}
+model Skill {
+  id   String @id @default(cuid())
+  name String @unique
+
+  userSkills UserSkill[]
+  roleSkills RoleSkill[]
+}
+
+model Domain {
+  id   String @id @default(cuid())
+  name String @unique
+
+  userDomains UserDomain[]
+}
+
+model UserSkill {
+  userId  String
+  skillId String
+
+  proficiency Int?
+
+  user  User  @relation(fields: [userId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@id([userId, skillId])
+}
+
+model UserDomain {
+  userId   String
+  domainId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  domain Domain @relation(fields: [domainId], references: [id])
+
+  @@id([userId, domainId])
+}
+
+model OpportunityRole {
+  id             String @id @default(cuid())
+  roleName       String
+  slotsAvailable Int
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+
+  roleSkills RoleSkill[]
+  applications Application[]
+  teamMembers TeamMember[]
+}
+
+model RoleSkill {
+  roleId  String
+  skillId String
+
+  role  OpportunityRole @relation(fields: [roleId], references: [id])
+  skill Skill           @relation(fields: [skillId], references: [id])
+
+  @@id([roleId, skillId])
+}
+
+
+model Application {
+  id String @id @default(cuid())
+
+  status ApplicationStatus @default(PENDING)
+
+  compatibilityScore Float?
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id])
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+
+roleId String?
+role   OpportunityRole? @relation(fields: [roleId], references: [id])
+}
+
+
+model Team {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+
+  opportunityId String @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+
+  members TeamMember[]
+  messages TeamMessage[]
+}
+
+
+model TeamMember {
+  teamId String
+  userId String
+  roleId String
+
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  role OpportunityRole @relation(fields: [roleId], references: [id])
+
+  @@id([teamId, userId])
+}
+
+model TeamMessage {
+  id String @id @default(cuid())
+
+  content String
+
+  createdAt DateTime @default(now())
+
+  senderId String
+  sender   User @relation(fields: [senderId], references: [id])
+
+  teamId String
+  team   Team @relation(fields: [teamId], references: [id])
+}
+
+
+
